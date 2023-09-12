@@ -2,89 +2,87 @@
 import requests
 import csv
 from bs4 import BeautifulSoup
+import pandas as pd
+import numpy as np
 
 
 #declaring global variables
 data=[]
-pr=[]
-li=[]
-si=[]
-re=[]
-de=[]
-ti=[]
+prize=[]
+link=[]
+size=[]
+reference=[]
+description=[]
+title=[]
 i=0
 url="https://www.chanel.com/in/fragrance/bath-and-body/c/7x1x7x92/women/"
 base_url='https://www.chanel.com'
 
+
 #accessing the html content and parsing 
-def scrap():
+def scrape():
    global url
-   res1=requests.get(url)
-   soup1=BeautifulSoup(res1.content,'lxml')
-   con=soup1.find_all('div', class_='txt-product')
-   links(con)
-   co=soup1.find('div', class_='container loadmore-container')
-   temp_url=co.find("a").attrs['href']
+   response=requests.get(url)
+   soup=BeautifulSoup(response.content,'lxml')
+   product=soup.find_all('div', class_='txt-product')
+   getLink(product)
+   loadMore=soup.find('div', class_='container loadmore-container')
+   temp_url=loadMore.find("a").attrs['href']
    if temp_url:
            url=base_url+temp_url
-           scrap()
-   
-#To extract links
-def links(con):
+           scrape()
+
+
+#extracting product links
+def getLink(product):
    global i
-   for c in con:
-        lin=c.find("a").attrs['href']
-        lin=base_url+lin
-        li.append(lin)
-        res2=requests.get(lin)
-        soup=BeautifulSoup(res2.content,'lxml')
-        title(soup)
-        description(soup)
-        reference(soup)
-        prize(soup)
-        size(soup)
+   for p in product:
+        product_url=base_url+p.find("a").attrs['href']
+        link.append(product_url)
+        response=requests.get(product_url)
+        soup=BeautifulSoup(response.content,'lxml')
+        getTitle(soup)
+        getDescription(soup)
+        getReference(soup)
+        getPrize(soup)
+        getSize(soup)
         i=i+1
 
-#To extract titles
-def title(soup):
-        ti.append(soup.find('span', class_='heading product-details__title text-ltr-align').text.replace(" ","").replace("\n",""))
 
-#To extract description
-def description(soup): 
-        de.append(soup.find('span', class_='product-details__description').text.replace(" ","").replace("\n",""))
+#extracting product title
+def getTitle(soup):
+        title.append(soup.find('span', class_='heading product-details__title text-ltr-align').text.replace(" ","").replace("\n",""))
 
-#To extract reference number
-def reference(soup):
-        re.append(soup.find('div', class_='product-details-block').text.replace(" ","").replace("\n",""))
+#extracting product description
+def getDescription(soup): 
+        description.append(soup.find('span', class_='product-details__description').text.replace(" ","").replace("\n",""))
 
-#To extract price
-def prize(soup):
-        pr.append(soup.find('p', class_='product-details__price').text.replace(" ","").replace("\n",""))
+#extracting product reference number
+def getReference(soup):
+        reference.append(soup.find('div', class_='product-details-block').text.replace(" ","").replace("\n",""))
 
-#To extract size
-def size(soup):
-        si.append(soup.find('div', class_='product-details__option').text.replace(" ","").replace("\n",""))
+#extracting product price
+def getPrize(soup):
+        prize.append(soup.find('p', class_='product-details__price').text.replace(" ","").replace("\n",""))
 
-#To save outut in a csv file
-def save_out():
-    row_head=['LINK','TITLE','DESCRIPTION','REFERENCE','PRICE','SIZE']
-    for l,t,d,r,p,s in zip(li,ti,de,re,pr,si):
-        data.append(l)
-        data.append(t)
-        data.append(d)
-        data.append(r)
-        data.append(p)
-        data.append(s)
-    rows = [data[i:i+6] for i in range (0, len(data),6)]
-    with open('chanel.csv','a+', encoding='utf-8') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(row_head)
-        csvwriter.writerows(rows)
+#extracting product size
+def getSize(soup):
+        size.append(soup.find('div', class_='product-details__option').text.replace(" ","").replace("\n",""))
+
+
+#saving the output
+def save_output():
+   df = pd.DataFrame(list(zip(link,title,description,reference,prize,size)),
+               columns =['LINK','TITLE','DESCRIPTION','REFERENCE','PRICE','SIZE'])
+   df
+   df.to_csv("chanel_output.csv")
+
 
 #main function
 def main():
-   scrap()
-   save_out()
+   scrape()
+   save_output()
+
 
 if __name__ == "__main__":
     main()
